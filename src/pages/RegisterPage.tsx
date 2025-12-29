@@ -14,7 +14,7 @@ export default function RegisterPage() {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
             La política en Colombia <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#23C062] via-emerald-500 to-[#7A00D2]">
-              Necesita Oxigeno.
+              Necesita Oxígeno.
             </span>
           </h1>
 
