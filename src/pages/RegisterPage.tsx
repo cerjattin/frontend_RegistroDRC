@@ -12,9 +12,9 @@ export default function RegisterPage() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
         <section className="text-center mt-4 md:mt-10">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]">
-            Menos política. <br className="hidden sm:block" />
+            La política en Colombia <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#23C062] via-emerald-500 to-[#7A00D2]">
-              Más acción.
+              Necesita Oxigeno.
             </span>
           </h1>
 
