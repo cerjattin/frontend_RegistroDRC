@@ -5,13 +5,7 @@ import { TurnstileWidget } from "../form/TurnstileWidget";
 import { toast } from "sonner";
 
 import type { Department, Municipality, Neighborhood, Leader } from "../../services/catalogs";
-import {
-  getDepartments,
-  getMunicipalities,
-  getNeighborhoods,
-  getLeaders,
-} from "../../services/catalogs";
-
+import { getDepartments, getMunicipalities, getNeighborhoods, getLeaders } from "../../services/catalogs";
 import { registerVoter } from "../../services/register";
 
 type Opt = { value: string; label: string };
@@ -40,20 +34,18 @@ export default function RegisterForm() {
 
     const load = async () => {
       try {
-        // Debug útil para producción (puedes quitarlo después)
-        console.log("VITE_API =", import.meta.env.VITE_API);
+        console.log("[RegisterForm] VITE_API =", import.meta.env.VITE_API);
 
+        console.log("[RegisterForm] loading catalogs: departments + leaders...");
         const [deps, leadersData] = await Promise.all([getDepartments(), getLeaders()]);
         if (!alive) return;
 
-        setDepartments(deps);
-        setLeaders(leadersData);
+        console.log("[RegisterForm] departments:", deps?.length ?? 0, "leaders:", leadersData?.length ?? 0);
 
-        // Si quieres autoseleccionar el primero, descomenta:
-        // if (deps.length && !departmentValue) setDepartmentValue(deps[0].name);
-
+        setDepartments(deps || []);
+        setLeaders(leadersData || []);
       } catch (e) {
-        console.error("Error cargando catálogos:", e);
+        console.error("[RegisterForm] Error cargando catálogos base:", e);
         toast.error("No se pudieron cargar los catálogos (departamentos/líderes).");
         if (!alive) return;
         setDepartments([]);
@@ -81,11 +73,14 @@ export default function RegisterForm() {
       if (!departmentValue) return;
 
       try {
+        console.log("[RegisterForm] loading municipalities for department:", departmentValue);
         const rows = await getMunicipalities(departmentValue);
         if (!alive) return;
-        setMunicipalities(rows);
+
+        console.log("[RegisterForm] municipalities:", rows?.length ?? 0);
+        setMunicipalities(rows || []);
       } catch (e) {
-        console.error("Error municipios:", e);
+        console.error("[RegisterForm] Error municipios:", e);
         toast.error("No se pudieron cargar los municipios.");
         if (!alive) return;
         setMunicipalities([]);
@@ -111,11 +106,15 @@ export default function RegisterForm() {
 
       try {
         const muniId = Number(municipalityValue);
+        console.log("[RegisterForm] loading neighborhoods for municipality:", muniId);
+
         const hoods = await getNeighborhoods(muniId);
         if (!alive) return;
-        setNeighborhoods(hoods);
+
+        console.log("[RegisterForm] neighborhoods:", hoods?.length ?? 0);
+        setNeighborhoods(hoods || []);
       } catch (e) {
-        console.error("Error barrios:", e);
+        console.error("[RegisterForm] Error barrios:", e);
         toast.error("No se pudieron cargar los barrios.");
         if (!alive) return;
         setNeighborhoods([]);
@@ -149,11 +148,44 @@ export default function RegisterForm() {
     [leaders]
   );
 
+  // ------------ PLACEHOLDERS INTELIGENTES ------------
+  const municipalityPlaceholder = useMemo(() => {
+    if (!departmentValue) return "Selecciona primero un departamento";
+    if (departmentValue && municipalities.length === 0) return "No hay municipios para este departamento";
+    return "Selecciona tu ciudad";
+  }, [departmentValue, municipalities.length]);
+
+  const neighborhoodPlaceholder = useMemo(() => {
+    if (!municipalityValue) return "Selecciona primero un municipio";
+    if (municipalityValue && neighborhoods.length === 0) return "No hay barrios para este municipio";
+    return "Selecciona tu barrio";
+  }, [municipalityValue, neighborhoods.length]);
+
+  // ✅ Detecta validación HTML bloqueando submit
+  const onInvalid = (e: React.FormEvent<HTMLFormElement>) => {
+    const form = e.currentTarget;
+    const invalid = form.querySelector(":invalid") as HTMLElement | null;
+    console.warn("[RegisterForm] Form invalid, first invalid:", invalid);
+  };
+
   // ------------ SUBMIT ------------
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    console.log("[RegisterForm] submit fired ✅");
+
+    // ✅ si algún required/pattern está bloqueando, lo mostramos
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      console.warn("[RegisterForm] checkValidity() failed ❌");
+      form.reportValidity();
+      toast.error("Revisa los campos requeridos.");
+      return;
+    }
 
     if (!captchaToken) {
+      console.warn("[RegisterForm] captchaToken missing ❌");
       toast.error("Por favor completa el captcha.");
       return;
     }
@@ -176,7 +208,7 @@ export default function RegisterForm() {
       return;
     }
 
-    const fd = new FormData(e.currentTarget);
+    const fd = new FormData(form);
 
     const payload = {
       document: String(fd.get("document") || "").trim(),
@@ -193,11 +225,15 @@ export default function RegisterForm() {
       captcha_token: captchaToken,
     };
 
+    console.log("[RegisterForm] payload:", payload);
+
     setLoading(true);
     try {
-      await registerVoter(payload);
+      const res = await registerVoter(payload);
+      console.log("[RegisterForm] registerVoter response ✅", res);
+
       toast.success("✅ Registro completado correctamente.");
-      e.currentTarget.reset();
+      form.reset();
 
       // reset selects
       setDepartmentValue("");
@@ -205,34 +241,23 @@ export default function RegisterForm() {
       setNeighborhoodValue("");
       setLeaderValue("");
       setCaptchaToken("");
-
-      // al resetear depto, los useEffect limpian municipality/neighborhood automáticamente
     } catch (err: any) {
+      console.error("[RegisterForm] registerVoter error ❌", err);
+
       const msg =
         err?.response?.data?.detail ||
+        err?.detail ||
         err?.message ||
         "Ocurrió un error registrando. Intenta de nuevo.";
+
       toast.error(String(msg));
     } finally {
       setLoading(false);
     }
   };
 
-  // ------------ PLACEHOLDERS INTELIGENTES ------------
-  const municipalityPlaceholder = useMemo(() => {
-    if (!departmentValue) return "Selecciona primero un departamento";
-    if (departmentValue && municipalities.length === 0) return "No hay municipios para este departamento";
-    return "Selecciona tu ciudad";
-  }, [departmentValue, municipalities.length]);
-
-  const neighborhoodPlaceholder = useMemo(() => {
-    if (!municipalityValue) return "Selecciona primero un municipio";
-    if (municipalityValue && neighborhoods.length === 0) return "No hay barrios para este municipio";
-    return "Selecciona tu barrio";
-  }, [municipalityValue, neighborhoods.length]);
-
   return (
-    <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-5" onSubmit={onSubmit} onInvalid={onInvalid}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <InputField label="Nombres" icon="person" name="first_name" placeholder="Juan" />
         <InputField label="Apellidos" icon="badge" name="last_name" placeholder="Pérez" />
@@ -247,6 +272,7 @@ export default function RegisterForm() {
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
+          required
         />
         <InputField
           label="Teléfono / Celular"
@@ -256,6 +282,7 @@ export default function RegisterForm() {
           type="tel"
           inputMode="numeric"
           pattern="[0-9+ ]*"
+          required
         />
       </div>
 
@@ -314,6 +341,7 @@ export default function RegisterForm() {
         icon="home_pin"
         name="address"
         placeholder="Calle 123 # 45 - 67"
+        required
       />
 
       {/* Consent */}
