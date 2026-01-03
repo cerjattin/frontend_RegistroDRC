@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import InputField from "../ui/InputField";
 import SelectField from "../ui/SelectField";
 import { TurnstileWidget } from "../form/TurnstileWidget";
@@ -6,7 +7,7 @@ import { toast } from "sonner";
 
 import type { Department, Municipality, Neighborhood, Leader } from "../../services/catalogs";
 import { getDepartments, getMunicipalities, getNeighborhoods, getLeaders } from "../../services/catalogs";
-import { registerVoter } from "../../services/register";
+import { registerVoter, resolveLeaderLink } from "../../services/register";
 
 type Opt = { value: string; label: string };
 
@@ -27,6 +28,18 @@ export default function RegisterForm() {
   const [municipalityValue, setMunicipalityValue] = useState<string>("");
   const [neighborhoodValue, setNeighborhoodValue] = useState<string>("");
   const [leaderValue, setLeaderValue] = useState<string>("");
+
+  const location = useLocation();
+
+  const [linkChecked, setLinkChecked] = useState(false);
+  const [linkValid, setLinkValid] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linkInfo, setLinkInfo] = useState<{
+    leaderCode: number;
+    coordinatorCode: number;
+    leaderName?: string;
+    coordinatorName?: string;
+  } | null>(null);
 
   // ------------ LOAD BASE CATALOGS (deps + leaders) ------------
   useEffect(() => {
@@ -59,6 +72,74 @@ export default function RegisterForm() {
     };
   }, []);
 
+  // ------------ LEADER LINK FROM URL ------------
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const leaderParam = params.get("leader");
+    const coordParam = params.get("coord");
+
+    // Si faltan parámetros -> link inválido
+    if (!leaderParam || !coordParam) {
+      setLinkChecked(true);
+      setLinkValid(false);
+      setLinkError("Este enlace no es válido. Solicita el enlace a tu líder.");
+      setLinkInfo(null);
+      setLeaderValue("");
+      return;
+    }
+
+    let alive = true;
+
+    (async () => {
+      try {
+        const res = await resolveLeaderLink(leaderParam, coordParam);
+        if (!alive) return;
+
+        if (!res.valid) {
+          setLinkChecked(true);
+          setLinkValid(false);
+          setLinkError(
+            res.message || "Enlace inválido o caducado. Solicita un nuevo enlace."
+          );
+          setLinkInfo(null);
+          setLeaderValue("");
+          return;
+        }
+
+        const leaderCode = res.leaderCode!;
+        const coordinatorCode = res.coordinatorCode!;
+
+        setLinkChecked(true);
+        setLinkValid(true);
+        setLinkError(null);
+
+        setLinkInfo({
+          leaderCode,
+          coordinatorCode,
+          leaderName: res.leaderName,
+          coordinatorName: res.coordinatorName,
+        });
+
+        setLeaderValue(String(leaderCode));
+      } catch (e) {
+        console.error("[RegisterForm] Error resolviendo link:", e);
+        if (!alive) return;
+
+        setLinkChecked(true);
+        setLinkValid(false);
+        setLinkError(
+          "No se pudo validar el enlace. Intenta de nuevo o solicita uno nuevo a tu líder."
+        );
+        setLinkInfo(null);
+        setLeaderValue("");
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [location.search]);
+
   // ------------ DEPARTMENT -> MUNICIPALITIES ------------
   useEffect(() => {
     let alive = true;
@@ -80,7 +161,7 @@ export default function RegisterForm() {
         console.log("[RegisterForm] municipalities:", rows?.length ?? 0);
         setMunicipalities(rows || []);
       } catch (e) {
-        console.error("[RegisterForm] Error municipios:", e);
+        console.error("[RegisterForm] Error cargando municipios:", e);
         toast.error("No se pudieron cargar los municipios.");
         if (!alive) return;
         setMunicipalities([]);
@@ -114,7 +195,7 @@ export default function RegisterForm() {
         console.log("[RegisterForm] neighborhoods:", hoods?.length ?? 0);
         setNeighborhoods(hoods || []);
       } catch (e) {
-        console.error("[RegisterForm] Error barrios:", e);
+        console.error("[RegisterForm] Error cargando barrios:", e);
         toast.error("No se pudieron cargar los barrios.");
         if (!alive) return;
         setNeighborhoods([]);
@@ -129,7 +210,7 @@ export default function RegisterForm() {
 
   // ------------ OPTIONS ------------
   const departmentOptions: Opt[] = useMemo(
-    () => departments.map((d) => ({ value: d.name, label: d.name })),
+    () => departments.map((d) => ({ value: String(d.name), label: d.name })),
     [departments]
   );
 
@@ -161,14 +242,13 @@ export default function RegisterForm() {
     return "Selecciona tu barrio";
   }, [municipalityValue, neighborhoods.length]);
 
-  // ✅ Detecta validación HTML bloqueando submit
-  const onInvalid = (e: React.FormEvent<HTMLFormElement>) => {
-    const form = e.currentTarget;
-    const invalid = form.querySelector(":invalid") as HTMLElement | null;
-    console.warn("[RegisterForm] Form invalid, first invalid:", invalid);
+  // ------------ HANDLERS ------------
+  const onInvalid = (e: React.InvalidEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast.error("Por favor completa todos los campos requeridos.");
   };
 
-  // ------------ SUBMIT ------------
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -203,8 +283,18 @@ export default function RegisterForm() {
       toast.error("Selecciona un barrio.");
       return;
     }
+
+    if (!linkChecked || !linkValid) {
+      toast.error(
+        linkError || "Este enlace no es válido. Solicita el enlace a tu líder."
+      );
+      return;
+    }
+
     if (!leaderValue) {
-      toast.error("Selecciona un líder.");
+      toast.error(
+        "No se pudo determinar el líder asociado al enlace. Solicita un nuevo enlace."
+      );
       return;
     }
 
@@ -221,6 +311,8 @@ export default function RegisterForm() {
       neighborhood_id: Number(neighborhoodValue),
       leader_id: Number(leaderValue),
 
+      coordinator_id: linkInfo?.coordinatorCode,
+
       consent: true,
       captcha_token: captchaToken,
     };
@@ -235,11 +327,10 @@ export default function RegisterForm() {
       toast.success("✅ Registro completado correctamente.");
       form.reset();
 
-      // reset selects
+      // reset selects (menos el líder que viene del link)
       setDepartmentValue("");
       setMunicipalityValue("");
       setNeighborhoodValue("");
-      setLeaderValue("");
       setCaptchaToken("");
     } catch (err: any) {
       console.error("[RegisterForm] registerVoter error ❌", err);
@@ -258,6 +349,35 @@ export default function RegisterForm() {
 
   return (
     <form className="flex flex-col gap-5" onSubmit={onSubmit} onInvalid={onInvalid}>
+      {/* Info del enlace de líder/coordinador */}
+      {linkChecked && linkValid && linkInfo && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-50 px-4 py-3 flex flex-col gap-1">
+          <p className="text-sm font-semibold text-emerald-800">
+            Registro asignado por:
+          </p>
+          <p className="text-sm text-emerald-900">
+            Líder:{' '}
+            <span className="font-semibold">
+              {linkInfo.leaderName || `ID ${linkInfo.leaderCode}`}
+            </span>
+          </p>
+          <p className="text-sm text-emerald-900">
+            Coordinador:{' '}
+            <span className="font-semibold">
+              {linkInfo.coordinatorName || `ID ${linkInfo.coordinatorCode}`}
+            </span>
+          </p>
+        </div>
+      )}
+
+      {linkChecked && !linkValid && (
+        <div className="rounded-xl border border-red-500/40 bg-red-50 px-4 py-3">
+          <p className="text-sm font-semibold text-red-800">
+            {linkError || "Este enlace no es válido. Solicita el enlace a tu líder."}
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <InputField label="Nombres" icon="person" name="first_name" placeholder="Juan" />
         <InputField label="Apellidos" icon="badge" name="last_name" placeholder="Pérez" />
@@ -324,6 +444,7 @@ export default function RegisterForm() {
           disabled={!municipalityValue}
         />
 
+        {/* El líder viene del enlace y no es editable, pero lo mostramos bloqueado */}
         <SelectField
           label="Líder"
           icon="diversity_3"
@@ -332,7 +453,7 @@ export default function RegisterForm() {
           options={leaderOptions}
           value={leaderValue}
           onChange={setLeaderValue}
-          disabled={leaderOptions.length === 0}
+          disabled={leaderOptions.length === 0 || !linkValid}
         />
       </div>
 
@@ -344,15 +465,13 @@ export default function RegisterForm() {
         required
       />
 
-      {/* Consent */}
-      <div className="flex items-start gap-3 mt-2">
+      {/* Consentimiento */}
+      <div className="mt-2 flex items-start gap-3 rounded-xl border border-[#D6E9DD] bg-[#F4FBF6] px-4 py-3">
         <input
-          className="mt-1 h-5 w-5 rounded border-gray-300 text-[#23C062] focus:ring-[#23C062]"
           id="consent"
-          name="consent"
           type="checkbox"
           required
-          defaultChecked
+          className="mt-1 h-4 w-4 rounded border-[#23C062] text-[#23C062]"
         />
         <label htmlFor="consent" className="text-sm text-[#54926D] leading-6">
           Acepto la{" "}
@@ -370,7 +489,7 @@ export default function RegisterForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !linkValid}
         className="
           mt-4 w-full inline-flex items-center justify-center gap-2
           rounded-xl py-4 px-5
