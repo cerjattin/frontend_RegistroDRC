@@ -1,16 +1,34 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import  RegisterPage  from "./pages/RegisterPage";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import RegisterPage from "./pages/RegisterPage";
 import { ThankYouPage } from "./pages/ThankYouPage";
 import LeaderPanelPage from "./pages/LeaderPanelPage";
 
-export default function App() {
+function AppRoutes() {
+  const location = useLocation();
+
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/registro" replace />} />
+      {/* Redirige "/" a "/registro" y conserva los parámetros si alguien usa "/" */}
+      <Route
+        path="/"
+        element={<Navigate to={`/registro${location.search}`} replace />}
+      />
+
+      {/* Formulario público */}
       <Route path="/registro" element={<RegisterPage />} />
+
+      {/* Gracias */}
       <Route path="/gracias" element={<ThankYouPage />} />
-      <Route path="/leader/panel" element={<LeaderPanelPage />} /> {/* 👈 nuevo */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+      {/* Panel de líder */}
+      <Route path="/leader/panel" element={<LeaderPanelPage />} />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/registro" replace />} />
     </Routes>
   );
+}
+
+export default function App() {
+  return <AppRoutes />;
 }
