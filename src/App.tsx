@@ -8,23 +8,23 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Redirige "/" a "/registro" y conserva los parámetros si alguien usa "/" */}
+      {/* Si alguien entra a "/" (con o sin query), mándalo a /registrodrc conservando los parámetros */}
       <Route
         path="/"
-        element={<Navigate to={`/registro${location.search}`} replace />}
+        element={<Navigate to={`/registrodrc${location.search}`} replace />}
       />
 
-      {/* Formulario público */}
-      <Route path="/registro" element={<RegisterPage />} />
+      {/* Formulario público REAL */}
+      <Route path="/registrodrc" element={<RegisterPage />} />
 
-      {/* Gracias */}
+      {/* Página de gracias */}
       <Route path="/gracias" element={<ThankYouPage />} />
 
       {/* Panel de líder */}
       <Route path="/leader/panel" element={<LeaderPanelPage />} />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/registro" replace />} />
+      {/* Cualquier otra cosa → al formulario (sin params) */}
+      <Route path="*" element={<Navigate to="/registrodrc" replace />} />
     </Routes>
   );
 }

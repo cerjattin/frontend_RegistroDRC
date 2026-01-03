@@ -74,10 +74,15 @@ export default function RegisterForm() {
 
   // ------------ LEADER LINK FROM URL ------------
   useEffect(() => {
+    console.log("[RegisterForm] pathname:", location.pathname);
+    console.log("[RegisterForm] search:", location.search);
+
     const params = new URLSearchParams(location.search);
     const leaderParam = params.get("leader");
     const coordParam = params.get("coord");
 
+    console.log("[RegisterForm] leaderParam:", leaderParam);
+    console.log("[RegisterForm] coordParam:", coordParam);
     // Si faltan parámetros -> link inválido
     if (!leaderParam || !coordParam) {
       setLinkChecked(true);
