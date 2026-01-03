@@ -6,7 +6,8 @@ import LeaderPanelPage from "./pages/LeaderPanelPage";
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<RegisterPage />} />
+      <Route path="/" element={<Navigate to="/registro" replace />} />
+      <Route path="/registro" element={<RegisterPage />} />
       <Route path="/gracias" element={<ThankYouPage />} />
       <Route path="/leader/panel" element={<LeaderPanelPage />} /> {/* 👈 nuevo */}
       <Route path="*" element={<Navigate to="/" replace />} />
