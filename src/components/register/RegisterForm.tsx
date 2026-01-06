@@ -48,8 +48,7 @@ export default function RegisterForm() {
 
     const load = async () => {
       try {
-        console.log("[RegisterForm] VITE_API =", import.meta.env.VITE_API);
-
+       
         console.log("[RegisterForm] loading catalogs: departments + leaders...");
         const [deps, leadersData] = await Promise.all([getDepartments(), getLeaders()]);
         if (!alive) return;
