@@ -1,6 +1,8 @@
 import axios from "axios";
+import { ENV } from "../config/env"; // ✅ ajusta el path si tu env.ts está en otra carpeta
 
-const API = import.meta.env.VITE_API || "https://drcoxigeno.onrender.com";
+// ✅ Fuente única de verdad para el backend
+const API = ENV.API_URL;
 
 export type RegisterPayload = {
   document: string;
@@ -40,10 +42,11 @@ export async function resolveLeaderLink(
 
 export async function registerVoter(payload: RegisterPayload) {
   const { data } = await axios.post(
-    `${API}/public/voters/register?mode=leader_link`, // 👈 usa mode=leader_link
-    payload
+    `${API}/public/voters/register?mode=leader_link`,
+    payload,
+    {
+      headers: { "Content-Type": "application/json" },
+    }
   );
   return data;
 }
-
-

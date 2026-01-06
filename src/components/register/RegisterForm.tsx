@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation,useNavigate } from "react-router-dom";
 import InputField from "../ui/InputField";
 import SelectField from "../ui/SelectField";
 import { TurnstileWidget } from "../form/TurnstileWidget";
@@ -13,7 +13,7 @@ type Opt = { value: string; label: string };
 
 export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
-
+  
   // captcha
   const [captchaToken, setCaptchaToken] = useState<string>("");
 
@@ -30,6 +30,7 @@ export default function RegisterForm() {
   const [leaderValue, setLeaderValue] = useState<string>("");
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [linkChecked, setLinkChecked] = useState(false);
   const [linkValid, setLinkValid] = useState(false);
@@ -330,6 +331,7 @@ export default function RegisterForm() {
       console.log("[RegisterForm] registerVoter response ✅", res);
 
       toast.success("✅ Registro completado correctamente.");
+      navigate("/gracias", { replace: true });
       form.reset();
 
       // reset selects (menos el líder que viene del link)
