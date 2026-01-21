@@ -30,6 +30,19 @@ export type ResolveLinkResponse = {
   message?: string;
 };
 
+export type RegisterLeaderPayload = {
+  name: string;
+};
+
+export type RegisterLeaderResponse = {
+  status: "created" | string;
+  leaderCode: number;
+  coordinatorCode: number;
+  leaderName: string;
+  coordinatorName?: string | null;
+  message?: string | null;
+};
+
 export async function resolveLeaderLink(
   leader: string,
   coord: string
@@ -48,5 +61,14 @@ export async function registerVoter(payload: RegisterPayload) {
       headers: { "Content-Type": "application/json" },
     }
   );
+  return data;
+}
+
+export async function registerLeader(
+  payload: RegisterLeaderPayload
+): Promise<RegisterLeaderResponse> {
+  const { data } = await axios.post(`${API}/public/leaders/register`, payload, {
+    headers: { "Content-Type": "application/json" },
+  });
   return data;
 }

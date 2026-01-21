@@ -4,12 +4,14 @@ import { Footer } from "../components/layout/Footer";
 import { WatermarkTiled } from "../components/layout/WatermarkTiled";
 import { ENV } from "../config/env";
 import { toast } from "sonner";
-import { resolveLeaderLink } from "../services/register";
+import { registerLeader } from "../services/register";
 
 export default function LeaderPanelPage() {
   const defaultBaseUrl = `${window.location.origin}${ENV.BASENAME || "/"}`;
 
   const [baseUrl, setBaseUrl] = useState(defaultBaseUrl);
+  const [leaderNameInput, setLeaderNameInput] = useState("");
+
   const [leaderCode, setLeaderCode] = useState("");
   const [coordCode, setCoordCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,26 +31,31 @@ export default function LeaderPanelPage() {
     }
   }, [baseUrl, leaderCode, coordCode]);
 
-  const handleValidateAndGenerate = async () => {
-    if (!leaderCode || !coordCode) {
-      toast.error("Ingresa el código de líder y coordinador.");
+  const handleCreateLeader = async () => {
+    const name = leaderNameInput.trim();
+    if (name.length < 2) {
+      toast.error("Ingresa el nombre del líder.");
       return;
     }
+
     setLoading(true);
     try {
-      const res = await resolveLeaderLink(leaderCode, coordCode);
-      if (!res.valid) {
-        toast.error(res.message || "Enlace inválido.");
-        setLeaderName(null);
-        setCoordName(null);
-        return;
-      }
-      setLeaderName(res.leaderName || `ID ${res.leaderCode}`);
-      setCoordName(res.coordinatorName || `ID ${res.coordinatorCode}`);
-      toast.success("Link validado correctamente. Puedes copiarlo o abrirlo.");
-    } catch (e) {
-      console.error("[LeaderPanel] Error resolviendo link:", e);
-      toast.error("No se pudo validar el link.");
+      const res = await registerLeader({ name });
+
+      setLeaderCode(String(res.leaderCode));
+      setCoordCode(String(res.coordinatorCode));
+      setLeaderName(res.leaderName || name);
+      setCoordName(res.coordinatorName || null);
+
+      toast.success("Líder creado. Link generado automáticamente.");
+    } catch (e: any) {
+      console.error("[LeaderPanel] Error creando líder:", e);
+      const msg =
+        e?.response?.data?.detail ||
+        e?.detail ||
+        e?.message ||
+        "No se pudo crear el líder.";
+      toast.error(String(msg));
     } finally {
       setLoading(false);
     }
@@ -81,78 +88,64 @@ export default function LeaderPanelPage() {
       <Navbar />
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-10">
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-6">
-          Panel de Líder
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-6">Panel de Líder</h1>
 
         <section className="space-y-6">
           <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm space-y-4">
-            <h2 className="text-lg font-semibold">Datos del líder</h2>
+            <h2 className="text-lg font-semibold">Crear líder y generar link</h2>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Código de líder (ID)
-                </label>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Nombre del líder</label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  value={leaderCode}
-                  onChange={(e) => setLeaderCode(e.target.value)}
-                  placeholder="Ej: 12"
+                  value={leaderNameInput}
+                  onChange={(e) => setLeaderNameInput(e.target.value)}
+                  placeholder="Ej: María Pérez"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Código de coordinador (ID)
-                </label>
-                <input
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                  value={coordCode}
-                  onChange={(e) => setCoordCode(e.target.value)}
-                  placeholder="Ej: 3"
-                />
+                <p className="mt-1 text-xs text-slate-500">
+                  El coordinador se asigna automáticamente (configurado en el backend).
+                </p>
               </div>
             </div>
 
             <div className="mt-4">
-              <label className="block text-sm font-medium mb-1">
-                URL base del formulario
-              </label>
+              <label className="block text-sm font-medium mb-1">URL base del formulario</label>
               <input
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
-              <p className="mt-1 text-xs text-slate-500">
-                Normalmente será {defaultBaseUrl}
-              </p>
+              <p className="mt-1 text-xs text-slate-500">Normalmente será {defaultBaseUrl}</p>
             </div>
 
             <button
               type="button"
-              onClick={handleValidateAndGenerate}
+              onClick={handleCreateLeader}
               disabled={loading}
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             >
-              {loading ? "Validando..." : "Validar y generar link"}
+              {loading ? "Creando..." : "Crear líder y generar link"}
             </button>
           </div>
 
           {finalLink && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 space-y-3">
-              <p className="text-sm font-semibold text-emerald-800">
-                Link generado:
-              </p>
+              <p className="text-sm font-semibold text-emerald-800">Link generado:</p>
               <p className="break-all text-sm text-emerald-900">{finalLink}</p>
 
-              {leaderName && coordName && (
+              {(leaderName || coordName) && (
                 <div className="text-sm text-emerald-900">
-                  <p>
-                    Líder: <span className="font-semibold">{leaderName}</span>
-                  </p>
-                  <p>
-                    Coordinador: <span className="font-semibold">{coordName}</span>
-                  </p>
+                  {leaderName && (
+                    <p>
+                      Líder: <span className="font-semibold">{leaderName}</span>
+                    </p>
+                  )}
+                  {coordName && (
+                    <p>
+                      Coordinador: <span className="font-semibold">{coordName}</span>
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -171,6 +164,13 @@ export default function LeaderPanelPage() {
                 >
                   Abrir en nueva pestaña
                 </button>
+              </div>
+
+              <div className="pt-2 text-xs text-emerald-900/70">
+                <p>
+                  Códigos: líder <span className="font-semibold">{leaderCode}</span> · coordinador{" "}
+                  <span className="font-semibold">{coordCode}</span>
+                </p>
               </div>
             </div>
           )}
