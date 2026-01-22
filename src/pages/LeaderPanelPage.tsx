@@ -122,60 +122,49 @@ const handleCreateAndGenerate = async () => {
           <div className="rounded-xl border border-slate-200 bg-white/80 p-5 shadow-sm space-y-4">
             <h2 className="text-lg font-semibold">Registro de líder</h2>
 
-              <div className="grid gap-4 md:grid-cols-2">
-    <div>
-      <label className="block text-sm font-medium mb-1">
-        ID del líder
-      </label>
-      <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        value={leaderId}
-        onChange={(e) => setLeaderId(e.target.value)}
-        placeholder="Ej: 12"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium mb-1">
-        coordinator_id (precargado)
-      </label>
-      <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        value={coordId}
-        onChange={(e) => setCoordId(e.target.value)}
-        placeholder="Ej: 3"
-      />
-      <p className="mt-1 text-xs text-slate-500">
-        Este valor viene por defecto, pero puedes ajustarlo si lo necesitas.
-      </p>
-    </div>
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium mb-1">
-        Nombre del líder
-      </label>
-      <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        value={leaderNameInput}
-        onChange={(e) => setLeaderNameInput(e.target.value)}
-        placeholder="Ej: Juan Pérez"
-      />
-    </div>
-  </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">ID del líder</label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={leaderId}
+                  onChange={(e) => setLeaderId(e.target.value)}
+                  placeholder="Ej: 12"
+                />
+              </div>
 
-</div>
+              <div>
+                <label className="block text-sm font-medium mb-1">coordinator_id (precargado)</label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={coordId}
+                  onChange={(e) => setCoordId(e.target.value)}
+                  placeholder="Ej: 3"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Este valor viene por defecto, pero puedes ajustarlo si lo necesitas.
+                </p>
+              </div>
 
-<div className="mt-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Nombre del líder</label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={leaderNameInput}
+                  onChange={(e) => setLeaderNameInput(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+            </div>
 
-              <label className="block text-sm font-medium mb-1">
-                URL base del formulario
-              </label>
+            <div className="mt-4">
+              <label className="block text-sm font-medium mb-1">URL base del formulario</label>
               <input
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
-              <p className="mt-1 text-xs text-slate-500">
-                Normalmente será {defaultBaseUrl}
-              </p>
+              <p className="mt-1 text-xs text-slate-500">Normalmente será {defaultBaseUrl}</p>
             </div>
 
             <button
