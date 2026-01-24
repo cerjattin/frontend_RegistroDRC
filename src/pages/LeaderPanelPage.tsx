@@ -133,7 +133,6 @@ const handleCreateAndGenerate = async () => {
                 />
               </div>
 
-
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">Nombre del líder</label>
                 <input
