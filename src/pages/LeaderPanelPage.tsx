@@ -133,6 +133,19 @@ const handleCreateAndGenerate = async () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-1">coordinator_id (precargado)</label>
+                <input
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  value={coordId}
+                  onChange={(e) => setCoordId(e.target.value)}
+                  placeholder="Ej: 3"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Este valor viene por defecto, pero puedes ajustarlo si lo necesitas.
+                </p>
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium mb-1">Nombre del líder</label>
                 <input
